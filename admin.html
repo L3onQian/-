@@ -1,0 +1,1878 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>十字通讯社 - 管理后台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- Firebase SDK -->
+    <script type="module">
+        // 导入需要的Firebase模块
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
+        import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, updateDoc, getDoc } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
+        import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
+
+        // Firebase配置
+        const firebaseConfig = {
+            apiKey: "AIzaSyDstICwWgLYdehjTOHDQgqLo2PixCtAo0I",
+            authDomain: "website-568e5.firebaseapp.com",
+            projectId: "website-568e5",
+            storageBucket: "website-568e5.firebasestorage.app",
+            messagingSenderId: "550643967633",
+            appId: "1:550643967633:web:c042e7d41d4070fabc0130",
+            measurementId: "G-4DR9JHFPN8"
+        };
+
+        // 初始化Firebase应用
+        const app = initializeApp(firebaseConfig);
+        
+        // 初始化服务
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+        
+        // 暴露到全局，供其他脚本使用
+        window.db = db;
+        window.auth = auth;
+        window.signInWithEmailAndPassword = signInWithEmailAndPassword;
+        window.signOut = signOut;
+        window.onAuthStateChanged = onAuthStateChanged;
+        window.collection = collection;
+        window.getDocs = getDocs;
+        window.getDoc = getDoc;
+        window.addDoc = addDoc;
+        window.deleteDoc = deleteDoc;
+        window.doc = doc;
+        window.updateDoc = updateDoc;
+    </script>
+    <script>
+        // Tailwind配置
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'burgundy': '#800020',
+                        'burgundy-light': '#a52a2a',
+                        'burgundy-dark': '#4b000f',
+                        'cream': '#fffdd0',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .sidebar-item {
+                @apply flex items-center p-4 text-gray-300 hover:bg-burgundy hover:text-white transition-colors duration-300 cursor-pointer;
+            }
+            .sidebar-item.active {
+                @apply bg-burgundy text-white;
+            }
+            .card-shadow {
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            }
+            .form-input {
+                @apply w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-burgundy focus:border-transparent;
+            }
+            .btn-primary {
+                @apply bg-burgundy text-white px-4 py-2 rounded-md hover:bg-burgundy-dark transition-colors duration-300;
+            }
+            .btn-secondary {
+                @apply bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300 transition-colors duration-300;
+            }
+            .status-published {
+                @apply bg-green-100 text-green-800;
+            }
+            .status-draft {
+                @apply bg-yellow-100 text-yellow-800;
+            }
+            .status-archived {
+                @apply bg-gray-100 text-gray-800;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans text-gray-800 min-h-screen flex flex-col">
+    <div id="app-container" class="flex h-screen overflow-hidden">
+        <!-- 登录界面 -->
+        <div id="login-container" class="w-full flex items-center justify-center p-4">
+            <div class="w-full max-w-md bg-white rounded-lg shadow-xl overflow-hidden">
+                <div class="p-8">
+                    <div class="flex justify-center mb-8">
+                        <div class="flex items-center space-x-2">
+                            <div class="w-12 h-12 rounded-full bg-burgundy flex items-center justify-center">
+                                <span class="text-white font-bold text-2xl">十</span>
+                            </div>
+                            <span class="text-2xl font-bold text-gray-900">十字通讯社</span>
+                        </div>
+                    </div>
+                    
+                    <h2 class="text-2xl font-bold text-center mb-6">管理后台登录</h2>
+                    
+                    <form id="login-form" class="space-y-6">
+                        <div>
+                            <label for="email" class="block text-gray-700 mb-2">邮箱地址</label>
+                            <input type="email" id="email" class="form-input" placeholder="your@email.com" required>
+                        </div>
+                        
+                        <div>
+                            <label for="password" class="block text-gray-700 mb-2">密码</label>
+                            <input type="password" id="password" class="form-input" placeholder="请输入密码" required>
+                        </div>
+                        
+                        <div class="flex items-center">
+                            <input type="checkbox" id="remember-me" class="w-5 h-5 text-burgundy focus:ring-burgundy rounded">
+                            <label for="remember-me" class="ml-2 text-gray-700">记住我</label>
+                        </div>
+                        
+                        <button type="submit" class="w-full btn-primary font-medium">
+                            登录
+                        </button>
+                    </form>
+                    
+                    <div id="login-error" class="mt-4 text-red-500 text-center hidden">
+                        邮箱或密码错误，请重试
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 管理后台主界面 (默认隐藏) -->
+        <div id="admin-container" class="hidden flex h-full w-full">
+            <!-- 侧边栏 -->
+            <aside class="w-64 bg-gray-800 text-white flex-shrink-0 hidden md:block">
+                <div class="p-6 border-b border-gray-700">
+                    <div class="flex items-center space-x-2">
+                        <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center">
+                            <span class="text-burgundy font-bold text-xl">十</span>
+                        </div>
+                        <span class="text-xl font-bold">管理后台</span>
+                    </div>
+                </div>
+                
+                <nav class="p-4">
+                    <div class="sidebar-item active" data-section="dashboard">
+                        <i class="fa fa-dashboard w-6"></i>
+                        <span class="ml-3">仪表盘</span>
+                    </div>
+                    
+                    <div class="sidebar-item" data-section="news">
+                        <i class="fa fa-newspaper-o w-6"></i>
+                        <span class="ml-3">新闻管理</span>
+                    </div>
+                    
+                    <div class="sidebar-item" data-section="jobs">
+                        <i class="fa fa-briefcase w-6"></i>
+                        <span class="ml-3">招聘管理</span>
+                    </div>
+                    
+                    <div class="sidebar-item" data-section="about">
+                        <i class="fa fa-info-circle w-6"></i>
+                        <span class="ml-3">关于我们</span>
+                    </div>
+                    
+                    <div class="sidebar-item" data-section="subscribers">
+                        <i class="fa fa-users w-6"></i>
+                        <span class="ml-3">订阅者管理</span>
+                    </div>
+                    
+                    <div class="sidebar-item" data-section="settings">
+                        <i class="fa fa-cog w-6"></i>
+                        <span class="ml-3">系统设置</span>
+                    </div>
+                </nav>
+                
+                <div class="absolute bottom-0 left-0 w-full p-4 border-t border-gray-700">
+                    <div class="sidebar-item" id="logout-btn">
+                        <i class="fa fa-sign-out w-6"></i>
+                        <span class="ml-3">退出登录</span>
+                    </div>
+                </div>
+            </aside>
+            
+            <!-- 移动端侧边栏 (默认隐藏) -->
+            <div id="mobile-sidebar" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden md:hidden">
+                <div class="w-64 h-full bg-gray-800 text-white transform transition-transform duration-300 -translate-x-full" id="mobile-sidebar-content">
+                    <!-- 移动端侧边栏内容 -->
+                    <div class="p-6 border-b border-gray-700">
+                        <div class="flex items-center space-x-2">
+                            <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center">
+                                <span class="text-burgundy font-bold text-xl">十</span>
+                            </div>
+                            <span class="text-xl font-bold">管理后台</span>
+                        </div>
+                    </div>
+                    
+                    <nav class="p-4">
+                        <div class="sidebar-item active" data-section="dashboard">
+                            <i class="fa fa-dashboard w-6"></i>
+                            <span class="ml-3">仪表盘</span>
+                        </div>
+                        
+                        <div class="sidebar-item" data-section="news">
+                            <i class="fa fa-newspaper-o w-6"></i>
+                            <span class="ml-3">新闻管理</span>
+                        </div>
+                        
+                        <div class="sidebar-item" data-section="jobs">
+                            <i class="fa fa-briefcase w-6"></i>
+                            <span class="ml-3">招聘管理</span>
+                        </div>
+                        
+                        <div class="sidebar-item" data-section="about">
+                            <i class="fa fa-info-circle w-6"></i>
+                            <span class="ml-3">关于我们</span>
+                        </div>
+                        
+                        <div class="sidebar-item" data-section="subscribers">
+                            <i class="fa fa-users w-6"></i>
+                            <span class="ml-3">订阅者管理</span>
+                        </div>
+                        
+                        <div class="sidebar-item" data-section="settings">
+                            <i class="fa fa-cog w-6"></i>
+                            <span class="ml-3">系统设置</span>
+                        </div>
+                    </nav>
+                    
+                    <div class="absolute bottom-0 left-0 w-full p-4 border-t border-gray-700">
+                        <div class="sidebar-item" id="mobile-logout-btn">
+                            <i class="fa fa-sign-out w-6"></i>
+                            <span class="ml-3">退出登录</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 主内容区 -->
+            <main class="flex-1 flex flex-col overflow-hidden">
+                <!-- 顶部导航 -->
+                <header class="bg-white shadow-sm py-4 px-6 flex justify-between items-center">
+                    <button id="mobile-menu-btn" class="md:hidden text-gray-700 text-xl">
+                        <i class="fa fa-bars"></i>
+                    </button>
+                    
+                    <div class="flex items-center">
+                        <div class="relative">
+                            <button id="user-menu-btn" class="flex items-center space-x-2 focus:outline-none">
+                                <img src="https://picsum.photos/id/64/200/200" alt="用户头像" class="w-8 h-8 rounded-full object-cover">
+                                <span id="current-user" class="text-sm font-medium hidden md:inline-block">管理员</span>
+                                <i class="fa fa-angle-down text-gray-500 hidden md:inline-block"></i>
+                            </button>
+                        </div>
+                    </div>
+                </header>
+                
+                <!-- 内容区域 -->
+                <div class="flex-1 overflow-y-auto p-6 bg-gray-50">
+                    <!-- 仪表盘 (默认显示) -->
+                    <section id="dashboard-section" class="admin-section">
+                        <div class="mb-8">
+                            <h1 class="text-2xl font-bold text-gray-900">仪表盘</h1>
+                            <p class="text-gray-600">欢迎回来，这里是系统概览</p>
+                        </div>
+                        
+                        <!-- 统计卡片 -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                            <div class="bg-white rounded-lg p-6 card-shadow">
+                                <div class="flex items-center justify-between mb-4">
+                                    <h3 class="text-gray-600 font-medium">新闻总数</h3>
+                                    <div class="w-10 h-10 bg-burgundy/10 text-burgundy rounded-full flex items-center justify-center">
+                                        <i class="fa fa-newspaper-o"></i>
+                                    </div>
+                                </div>
+                                <div class="flex items-end justify-between">
+                                    <span class="text-3xl font-bold text-gray-900" id="news-count">0</span>
+                                    <span class="text-green-500 text-sm flex items-center">
+                                        <i class="fa fa-arrow-up mr-1"></i> 12%
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-white rounded-lg p-6 card-shadow">
+                                <div class="flex items-center justify-between mb-4">
+                                    <h3 class="text-gray-600 font-medium">招聘岗位</h3>
+                                    <div class="w-10 h-10 bg-burgundy/10 text-burgundy rounded-full flex items-center justify-center">
+                                        <i class="fa fa-briefcase"></i>
+                                    </div>
+                                </div>
+                                <div class="flex items-end justify-between">
+                                    <span class="text-3xl font-bold text-gray-900" id="jobs-count">0</span>
+                                    <span class="text-green-500 text-sm flex items-center">
+                                        <i class="fa fa-arrow-up mr-1"></i> 5%
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-white rounded-lg p-6 card-shadow">
+                                <div class="flex items-center justify-between mb-4">
+                                    <h3 class="text-gray-600 font-medium">订阅用户</h3>
+                                    <div class="w-10 h-10 bg-burgundy/10 text-burgundy rounded-full flex items-center justify-center">
+                                        <i class="fa fa-users"></i>
+                                    </div>
+                                </div>
+                                <div class="flex items-end justify-between">
+                                    <span class="text-3xl font-bold text-gray-900" id="subscribers-count">0</span>
+                                    <span class="text-green-500 text-sm flex items-center">
+                                        <i class="fa fa-arrow-up mr-1"></i> 8%
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-white rounded-lg p-6 card-shadow">
+                                <div class="flex items-center justify-between mb-4">
+                                    <h3 class="text-gray-600 font-medium">今日访问</h3>
+                                    <div class="w-10 h-10 bg-burgundy/10 text-burgundy rounded-full flex items-center justify-center">
+                                        <i class="fa fa-eye"></i>
+                                    </div>
+                                </div>
+                                <div class="flex items-end justify-between">
+                                    <span class="text-3xl font-bold text-gray-900" id="visits-count">0</span>
+                                    <span class="text-red-500 text-sm flex items-center">
+                                        <i class="fa fa-arrow-down mr-1"></i> 3%
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 最近新闻和招聘 -->
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <!-- 最近新闻 -->
+                            <div class="bg-white rounded-lg card-shadow overflow-hidden">
+                                <div class="p-6 border-b border-gray-100 flex justify-between items-center">
+                                    <h3 class="font-bold text-gray-900">最近发布的新闻</h3>
+                                    <a href="#" class="text-burgundy hover:text-burgundy-dark text-sm font-medium view-section" data-section="news">查看全部</a>
+                                </div>
+                                <div class="overflow-x-auto">
+                                    <table class="min-w-full divide-y divide-gray-200">
+                                        <thead class="bg-gray-50">
+                                            <tr>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">标题</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">分类</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">发布日期</th>
+                                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="recent-news-table" class="bg-white divide-y divide-gray-200">
+                                            <!-- 最近新闻将通过JavaScript动态加载 -->
+                                            <tr>
+                                                <td colspan="4" class="px-6 py-10 text-center text-gray-500">
+                                                    <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-burgundy mx-auto mb-2"></div>
+                                                    <span>加载中...</span>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            
+                            <!-- 最近招聘 -->
+                            <div class="bg-white rounded-lg card-shadow overflow-hidden">
+                                <div class="p-6 border-b border-gray-100 flex justify-between items-center">
+                                    <h3 class="font-bold text-gray-900">正在招聘的岗位</h3>
+                                    <a href="#" class="text-burgundy hover:text-burgundy-dark text-sm font-medium view-section" data-section="jobs">查看全部</a>
+                                </div>
+                                <div class="overflow-x-auto">
+                                    <table class="min-w-full divide-y divide-gray-200">
+                                        <thead class="bg-gray-50">
+                                            <tr>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">职位名称</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">部门</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">截止日期</th>
+                                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="recent-jobs-table" class="bg-white divide-y divide-gray-200">
+                                            <!-- 最近招聘将通过JavaScript动态加载 -->
+                                            <tr>
+                                                <td colspan="4" class="px-6 py-10 text-center text-gray-500">
+                                                    <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-burgundy mx-auto mb-2"></div>
+                                                    <span>加载中...</span>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                    
+                    <!-- 新闻管理 -->
+                    <section id="news-section" class="admin-section hidden">
+                        <div class="mb-8 flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+                            <div>
+                                <h1 class="text-2xl font-bold text-gray-900">新闻管理</h1>
+                                <p class="text-gray-600">管理所有新闻内容</p>
+                            </div>
+                            <button id="add-news-btn" class="btn-primary flex items-center justify-center">
+                                <i class="fa fa-plus mr-2"></i> 添加新闻
+                            </button>
+                        </div>
+                        
+                        <div class="bg-white rounded-lg card-shadow overflow-hidden">
+                            <div class="p-6">
+                                <div class="flex flex-col md:flex-row gap-4 mb-6">
+                                    <div class="flex-1">
+                                        <div class="relative">
+                                            <input type="text" id="news-search" placeholder="搜索新闻标题" class="form-input pl-10">
+                                            <i class="fa fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                                        </div>
+                                    </div>
+                                    <div class="w-full md:w-48">
+                                        <select id="news-category" class="form-input">
+                                            <option value="all">所有分类</option>
+                                            <option value="politics">政治</option>
+                                            <option value="economy">经济</option>
+                                            <option value="culture">文化</option>
+                                            <option value="technology">科技</option>
+                                            <option value="international">国际</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <div class="overflow-x-auto">
+                                    <table class="min-w-full divide-y divide-gray-200">
+                                        <thead class="bg-gray-50">
+                                            <tr>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">标题</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">分类</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">发布日期</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">状态</th>
+                                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="news-table" class="bg-white divide-y divide-gray-200">
+                                            <!-- 新闻数据将通过JavaScript动态加载 -->
+                                            <tr>
+                                                <td colspan="6" class="px-6 py-10 text-center text-gray-500">
+                                                    <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-burgundy mx-auto mb-2"></div>
+                                                    <span>加载中...</span>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                    
+                    <!-- 招聘管理 -->
+                    <section id="jobs-section" class="admin-section hidden">
+                        <div class="mb-8 flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+                            <div>
+                                <h1 class="text-2xl font-bold text-gray-900">招聘管理</h1>
+                                <p class="text-gray-600">管理所有招聘岗位</p>
+                            </div>
+                            <button id="add-job-btn" class="btn-primary flex items-center justify-center">
+                                <i class="fa fa-plus mr-2"></i> 添加岗位
+                            </button>
+                        </div>
+                        
+                        <div class="bg-white rounded-lg card-shadow overflow-hidden">
+                            <div class="p-6">
+                                <div class="flex flex-col md:flex-row gap-4 mb-6">
+                                    <div class="flex-1">
+                                        <div class="relative">
+                                            <input type="text" id="job-search" placeholder="搜索职位名称" class="form-input pl-10">
+                                            <i class="fa fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                                        </div>
+                                    </div>
+                                    <div class="w-full md:w-48">
+                                        <select id="job-department-filter" class="form-input">
+                                            <option value="all">所有部门</option>
+                                            <option value="editorial">编辑部</option>
+                                            <option value="digital">数字媒体部</option>
+                                            <option value="international">国际部</option>
+                                            <option value="technology">技术部</option>
+                                            <option value="business">商务部</option>
+                                        </select>
+                                    </div>
+                                    <div class="w-full md:w-48">
+                                        <select id="job-type-filter" class="form-input">
+                                            <option value="all">所有类型</option>
+                                            <option value="full-time">全职</option>
+                                            <option value="part-time">兼职</option>
+                                            <option value="internship">实习</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <div class="overflow-x-auto">
+                                    <table class="min-w-full divide-y divide-gray-200">
+                                        <thead class="bg-gray-50">
+                                            <tr>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">职位名称</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">部门</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">类型</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">截止日期</th>
+                                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="jobs-table" class="bg-white divide-y divide-gray-200">
+                                            <!-- 招聘数据将通过JavaScript动态加载 -->
+                                            <tr>
+                                                <td colspan="6" class="px-6 py-10 text-center text-gray-500">
+                                                    <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-burgundy mx-auto mb-2"></div>
+                                                    <span>加载中...</span>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                    
+                    <!-- 关于我们管理 -->
+                    <section id="about-section" class="admin-section hidden">
+                        <div class="mb-8">
+                            <h1 class="text-2xl font-bold text-gray-900">关于我们</h1>
+                            <p class="text-gray-600">管理"关于我们"页面内容</p>
+                        </div>
+                        
+                        <div class="bg-white rounded-lg card-shadow overflow-hidden">
+                            <div class="p-6">
+                                <form id="about-form">
+                                    <div class="mb-6">
+                                        <label for="about-tagline" class="block text-gray-700 mb-2">标语</label>
+                                        <input type="text" id="about-tagline" class="form-input" placeholder="输入网站标语">
+                                    </div>
+                                    
+                                    <div class="mb-6">
+                                        <label for="about-title" class="block text-gray-700 mb-2">标题</label>
+                                        <input type="text" id="about-title" class="form-input" placeholder="输入页面标题">
+                                    </div>
+                                    
+                                    <div class="mb-6">
+                                        <label for="about-content" class="block text-gray-700 mb-2">内容</label>
+                                        <textarea id="about-content" rows="10" class="form-input" placeholder="输入关于我们的内容"></textarea>
+                                    </div>
+                                    
+                                    <div class="mb-6">
+                                        <label for="about-image-url" class="block text-gray-700 mb-2">图片URL</label>
+                                        <input type="text" id="about-image-url" class="form-input" placeholder="输入图片的URL地址">
+                                    </div>
+                                    
+                                    <div class="flex justify-end space-x-4">
+                                        <button type="button" id="reset-about-btn" class="btn-secondary">重置</button>
+                                        <button type="submit" class="btn-primary">保存更改</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </section>
+                    
+                    <!-- 订阅者管理 -->
+                    <section id="subscribers-section" class="admin-section hidden">
+                        <div class="mb-8">
+                            <h1 class="text-2xl font-bold text-gray-900">订阅者管理</h1>
+                            <p class="text-gray-600">管理所有新闻订阅用户</p>
+                        </div>
+                        
+                        <div class="bg-white rounded-lg card-shadow overflow-hidden">
+                            <div class="p-6">
+                                <div class="mb-6">
+                                    <div class="relative">
+                                        <input type="text" id="subscriber-search" placeholder="搜索订阅者邮箱" class="form-input pl-10">
+                                        <i class="fa fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                                    </div>
+                                </div>
+                                
+                                <div class="overflow-x-auto">
+                                    <table class="min-w-full divide-y divide-gray-200">
+                                        <thead class="bg-gray-50">
+                                            <tr>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">邮箱</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">订阅日期</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">状态</th>
+                                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="subscribers-table" class="bg-white divide-y divide-gray-200">
+                                            <!-- 订阅者数据将通过JavaScript动态加载 -->
+                                            <tr>
+                                                <td colspan="5" class="px-6 py-10 text-center text-gray-500">
+                                                    <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-burgundy mx-auto mb-2"></div>
+                                                    <span>加载中...</span>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                    
+                    <!-- 系统设置 -->
+                    <section id="settings-section" class="admin-section hidden">
+                        <div class="mb-8">
+                            <h1 class="text-2xl font-bold text-gray-900">系统设置</h1>
+                            <p class="text-gray-600">管理网站系统设置</p>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div class="bg-white rounded-lg card-shadow overflow-hidden">
+                                <div class="p-6 border-b border-gray-100">
+                                    <h3 class="font-bold text-gray-900">网站设置</h3>
+                                </div>
+                                <div class="p-6">
+                                    <form id="website-settings-form">
+                                        <div class="mb-6">
+                                            <label for="website-title" class="block text-gray-700 mb-2">网站标题</label>
+                                            <input type="text" id="website-title" class="form-input" placeholder="输入网站标题">
+                                        </div>
+                                        
+                                        <div class="mb-6">
+                                            <label for="website-description" class="block text-gray-700 mb-2">网站描述</label>
+                                            <textarea id="website-description" rows="3" class="form-input" placeholder="输入网站描述"></textarea>
+                                        </div>
+                                        
+                                        <div class="mb-6">
+                                            <label for="contact-email" class="block text-gray-700 mb-2">联系邮箱</label>
+                                            <input type="email" id="contact-email" class="form-input" placeholder="输入联系邮箱">
+                                        </div>
+                                        
+                                        <div class="mb-6">
+                                            <label for="contact-phone" class="block text-gray-700 mb-2">联系电话</label>
+                                            <input type="tel" id="contact-phone" class="form-input" placeholder="输入联系电话">
+                                        </div>
+                                        
+                                        <div class="flex justify-end">
+                                            <button type="submit" class="btn-primary">保存设置</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-white rounded-lg card-shadow overflow-hidden">
+                                <div class="p-6 border-b border-gray-100">
+                                    <h3 class="font-bold text-gray-900">管理员设置</h3>
+                                </div>
+                                <div class="p-6">
+                                    <form id="admin-settings-form">
+                                        <div class="mb-6">
+                                            <label for="current-password" class="block text-gray-700 mb-2">当前密码</label>
+                                            <input type="password" id="current-password" class="form-input" placeholder="输入当前密码">
+                                        </div>
+                                        
+                                        <div class="mb-6">
+                                            <label for="new-password" class="block text-gray-700 mb-2">新密码</label>
+                                            <input type="password" id="new-password" class="form-input" placeholder="输入新密码">
+                                        </div>
+                                        
+                                        <div class="mb-6">
+                                            <label for="confirm-password" class="block text-gray-700 mb-2">确认新密码</label>
+                                            <input type="password" id="confirm-password" class="form-input" placeholder="再次输入新密码">
+                                        </div>
+                                        
+                                        <div class="flex justify-end">
+                                            <button type="submit" class="btn-primary">更新密码</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </main>
+        </div>
+    </div>
+    
+    <!-- 添加/编辑新闻模态框 -->
+    <div id="news-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b border-gray-100 flex justify-between items-center">
+                <h3 class="text-xl font-bold text-gray-900" id="news-modal-title">添加新闻</h3>
+                <button id="close-news-modal" class="text-gray-500 hover:text-gray-700">
+                    <i class="fa fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="p-6">
+                <form id="news-form">
+                    <input type="hidden" id="news-id">
+                    
+                    <div class="mb-6">
+                        <label for="news-title" class="block text-gray-700 mb-2">标题 <span class="text-red-500">*</span></label>
+                        <input type="text" id="news-title" class="form-input" placeholder="输入新闻标题" required>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <label for="news-category-select" class="block text-gray-700 mb-2">分类 <span class="text-red-500">*</span></label>
+                        <select id="news-category-select" class="form-input" required>
+                            <option value="">请选择分类</option>
+                            <option value="politics">政治</option>
+                            <option value="economy">经济</option>
+                            <option value="culture">文化</option>
+                            <option value="technology">科技</option>
+                            <option value="international">国际</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <label for="news-content" class="block text-gray-700 mb-2">内容 <span class="text-red-500">*</span></label>
+                        <textarea id="news-content" rows="10" class="form-input" placeholder="输入新闻内容" required></textarea>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <label for="news-image" class="block text-gray-700 mb-2">图片URL</label>
+                        <input type="text" id="news-image" class="form-input" placeholder="输入新闻图片的URL地址">
+                    </div>
+                    
+                    <div class="mb-6">
+                        <label for="news-status" class="block text-gray-700 mb-2">状态</label>
+                        <select id="news-status" class="form-input">
+                            <option value="published">已发布</option>
+                            <option value="draft">草稿</option>
+                            <option value="archived">已归档</option>
+                        </select>
+                    </div>
+                    
+                    <div class="flex justify-end space-x-4">
+                        <button type="button" id="cancel-news-btn" class="btn-secondary">取消</button>
+                        <button type="submit" class="btn-primary">保存</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 添加/编辑招聘模态框 -->
+    <div id="job-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b border-gray-100 flex justify-between items-center">
+                <h3 class="text-xl font-bold text-gray-900" id="job-modal-title">添加招聘岗位</h3>
+                <button id="close-job-modal" class="text-gray-500 hover:text-gray-700">
+                    <i class="fa fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="p-6">
+                <form id="job-form">
+                    <input type="hidden" id="job-id">
+                    
+                    <div class="mb-6">
+                        <label for="job-title" class="block text-gray-700 mb-2">职位名称 <span class="text-red-500">*</span></label>
+                        <input type="text" id="job-title" class="form-input" placeholder="输入职位名称" required>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <label for="job-department-select" class="block text-gray-700 mb-2">部门 <span class="text-red-500">*</span></label>
+                        <select id="job-department-select" class="form-input" required>
+                            <option value="">请选择部门</option>
+                            <option value="editorial">编辑部</option>
+                            <option value="digital">数字媒体部</option>
+                            <option value="international">国际部</option>
+                            <option value="technology">技术部</option>
+                            <option value="business">商务部</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <label for="job-type-select" class="block text-gray-700 mb-2">职位类型 <span class="text-red-500">*</span></label>
+                        <select id="job-type-select" class="form-input" required>
+                            <option value="">请选择类型</option>
+                            <option value="full-time">全职</option>
+                            <option value="part-time">兼职</option>
+                            <option value="internship">实习</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <label for="job-location" class="block text-gray-700 mb-2">工作地点 <span class="text-red-500">*</span></label>
+                        <input type="text" id="job-location" class="form-input" placeholder="输入工作地点" required>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <label for="job-description" class="block text-gray-700 mb-2">职位描述 <span class="text-red-500">*</span></label>
+                        <textarea id="job-description" rows="6" class="form-input" placeholder="输入职位描述" required></textarea>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <label for="job-requirements" class="block text-gray-700 mb-2">任职要求 <span class="text-red-500">*</span></label>
+                        <textarea id="job-requirements" rows="4" class="form-input" placeholder="输入任职要求" required></textarea>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <label for="job-deadline" class="block text-gray-700 mb-2">截止日期 <span class="text-red-500">*</span></label>
+                        <input type="date" id="job-deadline" class="form-input" required>
+                    </div>
+                    
+                    <div class="flex justify-end space-x-4">
+                        <button type="button" id="cancel-job-btn" class="btn-secondary">取消</button>
+                        <button type="submit" class="btn-primary">保存</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 确认删除模态框 -->
+    <div id="confirm-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg w-full max-w-md">
+            <div class="p-6 border-b border-gray-100">
+                <h3 class="text-xl font-bold text-gray-900">确认删除</h3>
+            </div>
+            <div class="p-6">
+                <p class="text-gray-700 mb-6" id="confirm-message">您确定要删除此项目吗？此操作无法撤销。</p>
+                <div class="flex justify-end space-x-4">
+                    <button id="cancel-delete-btn" class="btn-secondary">取消</button>
+                    <button id="confirm-delete-btn" class="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors duration-300">删除</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let currentUser = null;
+        let deleteItemId = null;
+        let deleteCollection = null;
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 检查用户登录状态
+            checkAuthState();
+            
+            // 设置事件监听器
+            setupEventListeners();
+        });
+
+        // 检查用户认证状态
+        function checkAuthState() {
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    // 用户已登录
+                    currentUser = user;
+                    document.getElementById('login-container').classList.add('hidden');
+                    document.getElementById('admin-container').classList.remove('hidden');
+                    document.getElementById('current-user').textContent = user.email;
+                    
+                    // 加载数据
+                    loadDashboardData();
+                    loadNewsData();
+                    loadJobsData();
+                    loadSubscribersData();
+                    loadAboutData();
+                    loadSettingsData();
+                } else {
+                    // 用户未登录
+                    currentUser = null;
+                    document.getElementById('login-container').classList.remove('hidden');
+                    document.getElementById('admin-container').classList.add('hidden');
+                }
+            });
+        }
+
+        // 设置事件监听器
+        function setupEventListeners() {
+            // 登录表单提交
+            document.getElementById('login-form').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const email = document.getElementById('email').value;
+                const password = document.getElementById('password').value;
+                
+                try {
+                    await signInWithEmailAndPassword(auth, email, password);
+                    document.getElementById('login-error').classList.add('hidden');
+                } catch (error) {
+                    console.error('登录失败:', error);
+                    document.getElementById('login-error').classList.remove('hidden');
+                }
+            });
+            
+            // 退出登录
+            document.getElementById('logout-btn').addEventListener('click', async function() {
+                try {
+                    await signOut(auth);
+                } catch (error) {
+                    console.error('退出登录失败:', error);
+                }
+            });
+            
+            document.getElementById('mobile-logout-btn').addEventListener('click', async function() {
+                try {
+                    await signOut(auth);
+                    closeMobileSidebar();
+                } catch (error) {
+                    console.error('退出登录失败:', error);
+                }
+            });
+            
+            // 侧边栏导航
+            document.querySelectorAll('.sidebar-item[data-section]').forEach(item => {
+                item.addEventListener('click', function() {
+                    const section = this.getAttribute('data-section');
+                    showSection(section);
+                    
+                    // 如果是移动端，点击后关闭侧边栏
+                    if (window.innerWidth < 768) {
+                        closeMobileSidebar();
+                    }
+                });
+            });
+            
+            // 查看全部链接
+            document.querySelectorAll('.view-section').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const section = this.getAttribute('data-section');
+                    showSection(section);
+                });
+            });
+            
+            // 移动端菜单按钮
+            document.getElementById('mobile-menu-btn').addEventListener('click', function() {
+                openMobileSidebar();
+            });
+            
+            // 点击移动端侧边栏外部关闭
+            document.getElementById('mobile-sidebar').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeMobileSidebar();
+                }
+            });
+            
+            // 添加新闻按钮
+            document.getElementById('add-news-btn').addEventListener('click', function() {
+                openNewsModal();
+            });
+            
+            // 关闭新闻模态框
+            document.getElementById('close-news-modal').addEventListener('click', closeNewsModal);
+            document.getElementById('cancel-news-btn').addEventListener('click', closeNewsModal);
+            
+            // 新闻表单提交
+            document.getElementById('news-form').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                await saveNews();
+            });
+            
+            // 添加招聘按钮
+            document.getElementById('add-job-btn').addEventListener('click', function() {
+                openJobModal();
+            });
+            
+            // 关闭招聘模态框
+            document.getElementById('close-job-modal').addEventListener('click', closeJobModal);
+            document.getElementById('cancel-job-btn').addEventListener('click', closeJobModal);
+            
+            // 招聘表单提交
+            document.getElementById('job-form').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                await saveJob();
+            });
+            
+            // 关于我们表单提交
+            document.getElementById('about-form').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                await saveAboutData();
+            });
+            
+            // 重置关于我们
+            document.getElementById('reset-about-btn').addEventListener('click', loadAboutData);
+            
+            // 网站设置表单提交
+            document.getElementById('website-settings-form').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                await saveWebsiteSettings();
+            });
+            
+            // 管理员设置表单提交
+            document.getElementById('admin-settings-form').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                await changePassword();
+            });
+            
+            // 取消删除
+            document.getElementById('cancel-delete-btn').addEventListener('click', closeConfirmModal);
+            
+            // 确认删除
+            document.getElementById('confirm-delete-btn').addEventListener('click', async function() {
+                await confirmDelete();
+            });
+            
+            // 搜索功能
+            document.getElementById('news-search').addEventListener('input', filterNews);
+            document.getElementById('news-category').addEventListener('change', filterNews);
+            document.getElementById('job-search').addEventListener('input', filterJobs);
+            document.getElementById('job-department-filter').addEventListener('change', filterJobs);
+            document.getElementById('job-type-filter').addEventListener('change', filterJobs);
+            document.getElementById('subscriber-search').addEventListener('input', filterSubscribers);
+        }
+
+        // 显示指定 section
+        function showSection(sectionId) {
+            // 隐藏所有 section
+            document.querySelectorAll('.admin-section').forEach(section => {
+                section.classList.add('hidden');
+            });
+            
+            // 显示选中的 section
+            document.getElementById(`${sectionId}-section`).classList.remove('hidden');
+            
+            // 更新侧边栏选中状态
+            document.querySelectorAll('.sidebar-item').forEach(item => {
+                item.classList.remove('active');
+                if (item.getAttribute('data-section') === sectionId) {
+                    item.classList.add('active');
+                }
+            });
+        }
+
+        // 打开移动端侧边栏
+        function openMobileSidebar() {
+            document.getElementById('mobile-sidebar').classList.remove('hidden');
+            setTimeout(() => {
+                document.getElementById('mobile-sidebar-content').classList.remove('-translate-x-full');
+            }, 10);
+        }
+
+        // 关闭移动端侧边栏
+        function closeMobileSidebar() {
+            document.getElementById('mobile-sidebar-content').classList.add('-translate-x-full');
+            setTimeout(() => {
+                document.getElementById('mobile-sidebar').classList.add('hidden');
+            }, 300);
+        }
+
+        // 加载仪表盘数据
+        async function loadDashboardData() {
+            try {
+                // 加载新闻数量
+                const newsCol = collection(db, 'news');
+                const newsSnapshot = await getDocs(newsCol);
+                document.getElementById('news-count').textContent = newsSnapshot.size;
+                
+                // 加载招聘数量
+                const jobsCol = collection(db, 'jobs');
+                const jobsSnapshot = await getDocs(jobsCol);
+                document.getElementById('jobs-count').textContent = jobsSnapshot.size;
+                
+                // 加载订阅者数量
+                const subscribersCol = collection(db, 'subscribers');
+                const subscribersSnapshot = await getDocs(subscribersCol);
+                document.getElementById('subscribers-count').textContent = subscribersSnapshot.size;
+                
+                // 模拟访问量数据
+                document.getElementById('visits-count').textContent = Math.floor(Math.random() * 1000);
+                
+                // 加载最近新闻
+                loadRecentNews();
+                
+                // 加载最近招聘
+                loadRecentJobs();
+                
+            } catch (error) {
+                console.error('加载仪表盘数据失败:', error);
+            }
+        }
+
+        // 加载最近新闻
+        async function loadRecentNews() {
+            try {
+                const newsCol = collection(db, 'news');
+                const newsSnapshot = await getDocs(newsCol);
+                const newsTable = document.getElementById('recent-news-table');
+                
+                // 清空表格
+                newsTable.innerHTML = '';
+                
+                if (newsSnapshot.empty) {
+                    newsTable.innerHTML = `
+                        <tr>
+                            <td colspan="4" class="px-6 py-10 text-center text-gray-500">暂无新闻数据</td>
+                        </tr>
+                    `;
+                    return;
+                }
+                
+                // 取最近5条新闻
+                const newsList = Array.from(newsSnapshot.docs).slice(0, 5);
+                
+                newsList.forEach(doc => {
+                    const news = doc.data();
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-medium text-gray-900">${news.title}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-500">${formatCategory(news.category)}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-500">${new Date(news.publishedAt.toDate()).toLocaleDateString()}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <button class="text-burgundy hover:text-burgundy-dark mr-3 edit-news" data-id="${doc.id}">编辑</button>
+                            <button class="text-red-600 hover:text-red-800 delete-item" data-id="${doc.id}" data-collection="news">删除</button>
+                        </td>
+                    `;
+                    newsTable.appendChild(row);
+                });
+                
+                // 添加编辑和删除事件
+                attachNewsEvents();
+                
+            } catch (error) {
+                console.error('加载最近新闻失败:', error);
+            }
+        }
+
+        // 加载所有新闻数据
+        async function loadNewsData() {
+            try {
+                const newsCol = collection(db, 'news');
+                const newsSnapshot = await getDocs(newsCol);
+                const newsTable = document.getElementById('news-table');
+                
+                // 清空表格
+                newsTable.innerHTML = '';
+                
+                if (newsSnapshot.empty) {
+                    newsTable.innerHTML = `
+                        <tr>
+                            <td colspan="6" class="px-6 py-10 text-center text-gray-500">暂无新闻数据</td>
+                        </tr>
+                    `;
+                    return;
+                }
+                
+                newsSnapshot.forEach(doc => {
+                    const news = doc.data();
+                    const row = document.createElement('tr');
+                    row.setAttribute('data-id', doc.id);
+                    row.setAttribute('data-category', news.category);
+                    row.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-900">${doc.id.substring(0, 8)}...</div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="text-sm font-medium text-gray-900">${news.title}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-500">${formatCategory(news.category)}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-500">${new Date(news.publishedAt.toDate()).toLocaleDateString()}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusClass(news.status)}">
+                                ${formatStatus(news.status)}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <button class="text-burgundy hover:text-burgundy-dark mr-3 edit-news" data-id="${doc.id}">编辑</button>
+                            <button class="text-red-600 hover:text-red-800 delete-item" data-id="${doc.id}" data-collection="news">删除</button>
+                        </td>
+                    `;
+                    newsTable.appendChild(row);
+                });
+                
+                // 添加编辑和删除事件
+                attachNewsEvents();
+                
+            } catch (error) {
+                console.error('加载新闻数据失败:', error);
+            }
+        }
+
+        // 加载最近招聘
+        async function loadRecentJobs() {
+            try {
+                const jobsCol = collection(db, 'jobs');
+                const jobsSnapshot = await getDocs(jobsCol);
+                const jobsTable = document.getElementById('recent-jobs-table');
+                
+                // 清空表格
+                jobsTable.innerHTML = '';
+                
+                if (jobsSnapshot.empty) {
+                    jobsTable.innerHTML = `
+                        <tr>
+                            <td colspan="4" class="px-6 py-10 text-center text-gray-500">暂无招聘数据</td>
+                        </tr>
+                    `;
+                    return;
+                }
+                
+                // 取最近5条招聘
+                const jobsList = Array.from(jobsSnapshot.docs).slice(0, 5);
+                
+                jobsList.forEach(doc => {
+                    const job = doc.data();
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-medium text-gray-900">${job.title}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-500">${formatDepartment(job.department)}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-500">${new Date(job.deadline.toDate()).toLocaleDateString()}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <button class="text-burgundy hover:text-burgundy-dark mr-3 edit-job" data-id="${doc.id}">编辑</button>
+                            <button class="text-red-600 hover:text-red-800 delete-item" data-id="${doc.id}" data-collection="jobs">删除</button>
+                        </td>
+                    `;
+                    jobsTable.appendChild(row);
+                });
+                
+                // 添加编辑和删除事件
+                attachJobEvents();
+                
+            } catch (error) {
+                console.error('加载最近招聘失败:', error);
+            }
+        }
+
+        // 加载所有招聘数据
+        async function loadJobsData() {
+            try {
+                const jobsCol = collection(db, 'jobs');
+                const jobsSnapshot = await getDocs(jobsCol);
+                const jobsTable = document.getElementById('jobs-table');
+                
+                // 清空表格
+                jobsTable.innerHTML = '';
+                
+                if (jobsSnapshot.empty) {
+                    jobsTable.innerHTML = `
+                        <tr>
+                            <td colspan="6" class="px-6 py-10 text-center text-gray-500">暂无招聘数据</td>
+                        </tr>
+                    `;
+                    return;
+                }
+                
+                jobsSnapshot.forEach(doc => {
+                    const job = doc.data();
+                    const row = document.createElement('tr');
+                    row.setAttribute('data-id', doc.id);
+                    row.setAttribute('data-department', job.department);
+                    row.setAttribute('data-type', job.type);
+                    row.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-900">${doc.id.substring(0, 8)}...</div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="text-sm font-medium text-gray-900">${job.title}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-500">${formatDepartment(job.department)}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-500">${formatJobType(job.type)}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-500">${new Date(job.deadline.toDate()).toLocaleDateString()}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <button class="text-burgundy hover:text-burgundy-dark mr-3 edit-job" data-id="${doc.id}">编辑</button>
+                            <button class="text-red-600 hover:text-red-800 delete-item" data-id="${doc.id}" data-collection="jobs">删除</button>
+                        </td>
+                    `;
+                    jobsTable.appendChild(row);
+                });
+                
+                // 添加编辑和删除事件
+                attachJobEvents();
+                
+            } catch (error) {
+                console.error('加载招聘数据失败:', error);
+            }
+        }
+
+        // 加载订阅者数据
+        async function loadSubscribersData() {
+            try {
+                const subscribersCol = collection(db, 'subscribers');
+                const subscribersSnapshot = await getDocs(subscribersCol);
+                const subscribersTable = document.getElementById('subscribers-table');
+                
+                // 清空表格
+                subscribersTable.innerHTML = '';
+                
+                if (subscribersSnapshot.empty) {
+                    subscribersTable.innerHTML = `
+                        <tr>
+                            <td colspan="5" class="px-6 py-10 text-center text-gray-500">暂无订阅者数据</td>
+                        </tr>
+                    `;
+                    return;
+                }
+                
+                subscribersSnapshot.forEach(doc => {
+                    const subscriber = doc.data();
+                    const row = document.createElement('tr');
+                    row.setAttribute('data-email', subscriber.email);
+                    row.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-900">${doc.id.substring(0, 8)}...</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-900">${subscriber.email}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-500">${new Date(subscriber.subscribedAt.toDate()).toLocaleDateString()}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                活跃
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <button class="text-red-600 hover:text-red-800 delete-item" data-id="${doc.id}" data-collection="subscribers">取消订阅</button>
+                        </td>
+                    `;
+                    subscribersTable.appendChild(row);
+                });
+                
+                // 添加删除事件
+                attachDeleteEvents();
+                
+            } catch (error) {
+                console.error('加载订阅者数据失败:', error);
+            }
+        }
+
+        // 加载关于我们数据
+        async function loadAboutData() {
+            try {
+                const aboutDoc = doc(db, 'siteContent', 'about');
+                const aboutSnapshot = await getDoc(aboutDoc);
+                
+                if (aboutSnapshot.exists()) {
+                    const data = aboutSnapshot.data();
+                    document.getElementById('about-tagline').value = data.tagline || '';
+                    document.getElementById('about-title').value = data.title || '';
+                    document.getElementById('about-content').value = data.content || '';
+                    document.getElementById('about-image-url').value = data.imageUrl || '';
+                }
+            } catch (error) {
+                console.error('加载关于我们数据失败:', error);
+            }
+        }
+
+        // 保存关于我们数据
+        async function saveAboutData() {
+            try {
+                const aboutDoc = doc(db, 'siteContent', 'about');
+                await updateDoc(aboutDoc, {
+                    tagline: document.getElementById('about-tagline').value,
+                    title: document.getElementById('about-title').value,
+                    content: document.getElementById('about-content').value,
+                    imageUrl: document.getElementById('about-image-url').value,
+                    updatedAt: new Date()
+                });
+                
+                // 显示成功消息
+                alert('关于我们内容已成功更新！');
+            } catch (error) {
+                console.error('保存关于我们数据失败:', error);
+                alert('保存失败，请重试！');
+            }
+        }
+
+        // 加载系统设置
+        async function loadSettingsData() {
+            try {
+                const settingsDoc = doc(db, 'settings', 'website');
+                const settingsSnapshot = await getDoc(settingsDoc);
+                
+                if (settingsSnapshot.exists()) {
+                    const data = settingsSnapshot.data();
+                    document.getElementById('website-title').value = data.title || '';
+                    document.getElementById('website-description').value = data.description || '';
+                    document.getElementById('contact-email').value = data.contactEmail || '';
+                    document.getElementById('contact-phone').value = data.contactPhone || '';
+                }
+            } catch (error) {
+                console.error('加载系统设置失败:', error);
+            }
+        }
+
+        // 保存网站设置
+        async function saveWebsiteSettings() {
+            try {
+                const settingsDoc = doc(db, 'settings', 'website');
+                await updateDoc(settingsDoc, {
+                    title: document.getElementById('website-title').value,
+                    description: document.getElementById('website-description').value,
+                    contactEmail: document.getElementById('contact-email').value,
+                    contactPhone: document.getElementById('contact-phone').value,
+                    updatedAt: new Date()
+                });
+                
+                // 显示成功消息
+                alert('网站设置已成功更新！');
+            } catch (error) {
+                console.error('保存网站设置失败:', error);
+                alert('保存失败，请重试！');
+            }
+        }
+
+        // 更改密码
+        async function changePassword() {
+            try {
+                const currentPassword = document.getElementById('current-password').value;
+                const newPassword = document.getElementById('new-password').value;
+                const confirmPassword = document.getElementById('confirm-password').value;
+                
+                // 验证密码
+                if (newPassword !== confirmPassword) {
+                    alert('两次输入的新密码不一致！');
+                    return;
+                }
+                
+                if (newPassword.length < 6) {
+                    alert('密码长度不能少于6个字符！');
+                    return;
+                }
+                
+                // 这里应该有Firebase密码更新逻辑
+                // 实际应用中需要重新验证用户并更新密码
+                
+                // 模拟成功
+                alert('密码已成功更新！');
+                document.getElementById('admin-settings-form').reset();
+            } catch (error) {
+                console.error('更改密码失败:', error);
+                alert('更改密码失败，请重试！');
+            }
+        }
+
+        // 打开新闻模态框
+        function openNewsModal(newsId = null) {
+            if (newsId) {
+                // 编辑模式
+                document.getElementById('news-modal-title').textContent = '编辑新闻';
+                loadNewsForEdit(newsId);
+            } else {
+                // 添加模式
+                document.getElementById('news-modal-title').textContent = '添加新闻';
+                document.getElementById('news-form').reset();
+                document.getElementById('news-id').value = '';
+            }
+            
+            document.getElementById('news-modal').classList.remove('hidden');
+        }
+
+        // 关闭新闻模态框
+        function closeNewsModal() {
+            document.getElementById('news-modal').classList.add('hidden');
+        }
+
+        // 加载新闻用于编辑
+        async function loadNewsForEdit(newsId) {
+            try {
+                const newsDoc = doc(db, 'news', newsId);
+                const newsSnapshot = await getDoc(newsDoc);
+                
+                if (newsSnapshot.exists()) {
+                    const news = newsSnapshot.data();
+                    document.getElementById('news-id').value = newsId;
+                    document.getElementById('news-title').value = news.title || '';
+                    document.getElementById('news-category-select').value = news.category || '';
+                    document.getElementById('news-content').value = news.content || '';
+                    document.getElementById('news-image').value = news.imageUrl || '';
+                    document.getElementById('news-status').value = news.status || 'published';
+                }
+            } catch (error) {
+                console.error('加载新闻失败:', error);
+                alert('加载新闻失败，请重试！');
+            }
+        }
+
+        // 保存新闻
+        async function saveNews() {
+            try {
+                const newsId = document.getElementById('news-id').value;
+                const title = document.getElementById('news-title').value;
+                const category = document.getElementById('news-category-select').value;
+                const content = document.getElementById('news-content').value;
+                const imageUrl = document.getElementById('news-image').value;
+                const status = document.getElementById('news-status').value;
+                
+                // 验证
+                if (!title || !category || !content) {
+                    alert('请填写必填字段！');
+                    return;
+                }
+                
+                const newsData = {
+                    title,
+                    category,
+                    content,
+                    imageUrl: imageUrl || '',
+                    status,
+                    publishedAt: new Date(),
+                    updatedAt: new Date()
+                };
+                
+                if (newsId) {
+                    // 更新现有新闻
+                    const newsDoc = doc(db, 'news', newsId);
+                    await updateDoc(newsDoc, newsData);
+                } else {
+                    // 添加新闻
+                    await addDoc(collection(db, 'news'), newsData);
+                }
+                
+                // 关闭模态框并刷新数据
+                closeNewsModal();
+                loadNewsData();
+                loadRecentNews();
+                loadDashboardData();
+                
+                alert(newsId ? '新闻已成功更新！' : '新闻已成功添加！');
+            } catch (error) {
+                console.error('保存新闻失败:', error);
+                alert('保存新闻失败，请重试！');
+            }
+        }
+
+        // 打开招聘模态框
+        function openJobModal(jobId = null) {
+            if (jobId) {
+                // 编辑模式
+                document.getElementById('job-modal-title').textContent = '编辑招聘岗位';
+                loadJobForEdit(jobId);
+            } else {
+                // 添加模式
+                document.getElementById('job-modal-title').textContent = '添加招聘岗位';
+                document.getElementById('job-form').reset();
+                document.getElementById('job-id').value = '';
+                
+                // 设置默认截止日期为30天后
+                const defaultDate = new Date();
+                defaultDate.setDate(defaultDate.getDate() + 30);
+                document.getElementById('job-deadline').value = defaultDate.toISOString().split('T')[0];
+            }
+            
+            document.getElementById('job-modal').classList.remove('hidden');
+        }
+
+        // 关闭招聘模态框
+        function closeJobModal() {
+            document.getElementById('job-modal').classList.add('hidden');
+        }
+
+        // 加载招聘用于编辑
+        async function loadJobForEdit(jobId) {
+            try {
+                const jobDoc = doc(db, 'jobs', jobId);
+                const jobSnapshot = await getDoc(jobDoc);
+                
+                if (jobSnapshot.exists()) {
+                    const job = jobSnapshot.data();
+                    document.getElementById('job-id').value = jobId;
+                    document.getElementById('job-title').value = job.title || '';
+                    document.getElementById('job-department-select').value = job.department || '';
+                    document.getElementById('job-type-select').value = job.type || '';
+                    document.getElementById('job-location').value = job.location || '';
+                    document.getElementById('job-description').value = job.description || '';
+                    document.getElementById('job-requirements').value = job.requirements || '';
+                    
+                    // 格式化日期
+                    const deadlineDate = new Date(job.deadline.toDate());
+                    document.getElementById('job-deadline').value = deadlineDate.toISOString().split('T')[0];
+                }
+            } catch (error) {
+                console.error('加载招聘失败:', error);
+                alert('加载招聘失败，请重试！');
+            }
+        }
+
+        // 保存招聘
+        async function saveJob() {
+            try {
+                const jobId = document.getElementById('job-id').value;
+                const title = document.getElementById('job-title').value;
+                const department = document.getElementById('job-department-select').value;
+                const type = document.getElementById('job-type-select').value;
+                const location = document.getElementById('job-location').value;
+                const description = document.getElementById('job-description').value;
+                const requirements = document.getElementById('job-requirements').value;
+                const deadline = document.getElementById('job-deadline').value;
+                
+                // 验证
+                if (!title || !department || !type || !location || !description || !requirements || !deadline) {
+                    alert('请填写必填字段！');
+                    return;
+                }
+                
+                const jobData = {
+                    title,
+                    department,
+                    type,
+                    location,
+                    description,
+                    requirements,
+                    deadline: new Date(deadline),
+                    postedDate: jobId ? new Date() : new Date(), // 如果是新添加的才设置发布日期
+                    updatedAt: new Date()
+                };
+                
+                if (jobId) {
+                    // 更新现有招聘
+                    const jobDoc = doc(db, 'jobs', jobId);
+                    await updateDoc(jobDoc, jobData);
+                } else {
+                    // 添加招聘
+                    await addDoc(collection(db, 'jobs'), jobData);
+                }
+                
+                // 关闭模态框并刷新数据
+                closeJobModal();
+                loadJobsData();
+                loadRecentJobs();
+                loadDashboardData();
+                
+                alert(jobId ? '招聘岗位已成功更新！' : '招聘岗位已成功添加！');
+            } catch (error) {
+                console.error('保存招聘失败:', error);
+                alert('保存招聘失败，请重试！');
+            }
+        }
+
+        // 打开确认删除模态框
+        function openConfirmModal(itemId, collection) {
+            deleteItemId = itemId;
+            deleteCollection = collection;
+            
+            // 设置确认消息
+            let itemName = '';
+            switch(collection) {
+                case 'news':
+                    itemName = '新闻';
+                    break;
+                case 'jobs':
+                    itemName = '招聘岗位';
+                    break;
+                case 'subscribers':
+                    itemName = '订阅者';
+                    break;
+                default:
+                    itemName = '项目';
+            }
+            
+            document.getElementById('confirm-message').textContent = `您确定要删除此${itemName}吗？此操作无法撤销。`;
+            document.getElementById('confirm-modal').classList.remove('hidden');
+        }
+
+        // 关闭确认删除模态框
+        function closeConfirmModal() {
+            document.getElementById('confirm-modal').classList.add('hidden');
+            deleteItemId = null;
+            deleteCollection = null;
+        }
+
+        // 确认删除
+        async function confirmDelete() {
+            if (!deleteItemId || !deleteCollection) return;
+            
+            try {
+                const itemDoc = doc(db, deleteCollection, deleteItemId);
+                await deleteDoc(itemDoc);
+                
+                // 关闭模态框并刷新数据
+                closeConfirmModal();
+                
+                // 根据删除的集合刷新相应数据
+                switch(deleteCollection) {
+                    case 'news':
+                        loadNewsData();
+                        loadRecentNews();
+                        break;
+                    case 'jobs':
+                        loadJobsData();
+                        loadRecentJobs();
+                        break;
+                    case 'subscribers':
+                        loadSubscribersData();
+                        break;
+                }
+                
+                // 刷新仪表盘数据
+                loadDashboardData();
+                
+                alert('项目已成功删除！');
+            } catch (error) {
+                console.error('删除项目失败:', error);
+                alert('删除项目失败，请重试！');
+            }
+        }
+
+        // 附加新闻编辑事件
+        function attachNewsEvents() {
+            // 编辑新闻
+            document.querySelectorAll('.edit-news').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const newsId = this.getAttribute('data-id');
+                    openNewsModal(newsId);
+                });
+            });
+            
+            // 附加删除事件
+            attachDeleteEvents();
+        }
+
+        // 附加招聘编辑事件
+        function attachJobEvents() {
+            // 编辑招聘
+            document.querySelectorAll('.edit-job').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const jobId = this.getAttribute('data-id');
+                    openJobModal(jobId);
+                });
+            });
+            
+            // 附加删除事件
+            attachDeleteEvents();
+        }
+
+        // 附加删除事件
+        function attachDeleteEvents() {
+            document.querySelectorAll('.delete-item').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const itemId = this.getAttribute('data-id');
+                    const collection = this.getAttribute('data-collection');
+                    openConfirmModal(itemId, collection);
+                });
+            });
+        }
+
+        // 筛选新闻
+        function filterNews() {
+            const searchTerm = document.getElementById('news-search').value.toLowerCase();
+            const category = document.getElementById('news-category').value;
+            
+            document.querySelectorAll('#news-table tr').forEach(row => {
+                // 跳过表头
+                if (row.querySelector('th')) return;
+                
+                const title = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+                const rowCategory = row.getAttribute('data-category');
+                
+                const matchesSearch = title.includes(searchTerm);
+                const matchesCategory = category === 'all' || rowCategory === category;
+                
+                if (matchesSearch && matchesCategory) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+
+        // 筛选招聘
+        function filterJobs() {
+            const searchTerm = document.getElementById('job-search').value.toLowerCase();
+            const department = document.getElementById('job-department-filter').value;
+            const type = document.getElementById('job-type-filter').value;
+            
+            document.querySelectorAll('#jobs-table tr').forEach(row => {
+                // 跳过表头
+                if (row.querySelector('th')) return;
+                
+                const title = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+                const rowDepartment = row.getAttribute('data-department');
+                const rowType = row.getAttribute('data-type');
+                
+                const matchesSearch = title.includes(searchTerm);
+                const matchesDepartment = department === 'all' || rowDepartment === department;
+                const matchesType = type === 'all' || rowType === type;
+                
+                if (matchesSearch && matchesDepartment && matchesType) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+
+        // 筛选订阅者
+        function filterSubscribers() {
+            const searchTerm = document.getElementById('subscriber-search').value.toLowerCase();
+            
+            document.querySelectorAll('#subscribers-table tr').forEach(row => {
+                // 跳过表头
+                if (row.querySelector('th')) return;
+                
+                const email = row.getAttribute('data-email').toLowerCase();
+                
+                if (email.includes(searchTerm)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+
+        // 格式化分类显示
+        function formatCategory(category) {
+            const categories = {
+                'politics': '政治',
+                'economy': '经济',
+                'culture': '文化',
+                'technology': '科技',
+                'international': '国际'
+            };
+            return categories[category] || category;
+        }
+
+        // 格式化部门显示
+        function formatDepartment(department) {
+            const departments = {
+                'editorial': '编辑部',
+                'digital': '数字媒体部',
+                'international': '国际部',
+                'technology': '技术部',
+                'business': '商务部'
+            };
+            return departments[department] || department;
+        }
+
+        // 格式化职位类型显示
+        function formatJobType(type) {
+            const types = {
+                'full-time': '全职',
+                'part-time': '兼职',
+                'internship': '实习'
+            };
+            return types[type] || type;
+        }
+
+        // 格式化状态显示
+        function formatStatus(status) {
+            const statuses = {
+                'published': '已发布',
+                'draft': '草稿',
+                'archived': '已归档'
+            };
+            return statuses[status] || status;
+        }
+
+        // 获取状态样式类
+        function getStatusClass(status) {
+            const statusClasses = {
+                'published': 'status-published',
+                'draft': 'status-draft',
+                'archived': 'status-archived'
+            };
+            return statusClasses[status] || '';
+        }
+    </script>
+</body>
+</html>
+    

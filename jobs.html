@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>十字通讯社 - 招聘岗位</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- Firebase SDK -->
+    <script type="module">
+        // 导入需要的Firebase模块
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
+        import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-analytics.js";
+
+        // Firebase配置
+        const firebaseConfig = {
+            apiKey: "AIzaSyDstICwWgLYdehjTOHDQgqLo2PixCtAo0I",
+            authDomain: "website-568e5.firebaseapp.com",
+            projectId: "website-568e5",
+            storageBucket: "website-568e5.firebasestorage.app",
+            messagingSenderId: "550643967633",
+            appId: "1:550643967633:web:c042e7d41d4070fabc0130",
+            measurementId: "G-4DR9JHFPN8"
+        };
+
+        // 初始化Firebase应用
+        const app = initializeApp(firebaseConfig);
+        
+        // 初始化服务
+        const db = getFirestore(app);
+        const analytics = getAnalytics(app);
+        
+        // 暴露到全局，供其他脚本使用
+        window.db = db;
+        window.collection = collection;
+        window.getDocs = getDocs;
+        window.query = query;
+        window.where = where;
+    </script>
+    <script>
+        // Tailwind配置
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'burgundy': '#800020',
+                        'burgundy-light': '#a52a2a',
+                        'burgundy-dark': '#4b000f',
+                        'cream': '#fffdd0',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .job-card-hover {
+                transition: transform 0.3s, box-shadow 0.3s;
+            }
+            .job-card-hover:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            }
+            .section-fade-in {
+                opacity: 0;
+                transform: translateY(20px);
+                transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+            }
+            .section-visible {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans text-gray-800 overflow-x-hidden">
+    <!-- 导航栏 -->
+    <nav id="main-nav" class="fixed w-full z-50 transition-all duration-300 py-4 bg-burgundy shadow-md">
+        <div class="container mx-auto px-4 md:px-8">
+            <div class="flex justify-between items-center">
+                <!-- Logo -->
+                <a href="index.html" class="flex items-center space-x-2">
+                    <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center">
+                        <span class="text-burgundy font-bold text-xl">十</span>
+                    </div>
+                    <span class="text-2xl font-bold text-white">十字通讯社</span>
+                </a>
+                
+                <!-- 桌面导航 -->
+                <div class="hidden md:flex items-center space-x-8">
+                    <a href="index.html" class="text-white hover:text-gray-200 font-medium transition-colors duration-300">首页</a>
+                    <a href="jobs.html" class="text-white hover:text-gray-200 font-medium transition-colors duration-300 border-b-2 border-white">招聘岗位</a>
+                    <a href="about.html" class="text-white hover:text-gray-200 font-medium transition-colors duration-300">关于我们</a>
+                    <a href="admin.html" class="bg-white text-burgundy px-4 py-2 rounded-md hover:bg-gray-100 transition-colors duration-300 font-medium">管理后台</a>
+                </div>
+                
+                <!-- 移动端菜单按钮 -->
+                <button id="menu-toggle" class="md:hidden text-white text-2xl">
+                    <i class="fa fa-bars"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- 移动端导航菜单 -->
+        <div id="mobile-menu" class="md:hidden hidden bg-white shadow-lg absolute w-full">
+            <div class="container mx-auto px-4 py-3 flex flex-col space-y-3">
+                <a href="index.html" class="text-burgundy hover:text-burgundy-dark py-2 border-b border-gray-100">首页</a>
+                <a href="jobs.html" class="text-burgundy hover:text-burgundy-dark py-2 border-b border-gray-100">招聘岗位</a>
+                <a href="about.html" class="text-burgundy hover:text-burgundy-dark py-2 border-b border-gray-100">关于我们</a>
+                <a href="admin.html" class="bg-burgundy text-white px-4 py-2 rounded-md text-center">管理后台</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 页面标题区域 -->
+    <header class="pt-28 pb-16 bg-gray-900 text-white">
+        <div class="container mx-auto px-4 text-center">
+            <h1 class="text-[clamp(2rem,6vw,4rem)] font-bold mb-4">加入我们</h1>
+            <p class="text-gray-300 text-lg max-w-2xl mx-auto">与我们一起传递真相，连接世界</p>
+            <div class="mt-10">
+                <a href="#open-positions" class="inline-block bg-white text-burgundy px-8 py-3 rounded-md font-medium hover:bg-gray-100 transition-colors duration-300">
+                    浏览职位 <i class="fa fa-arrow-down ml-2"></i>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- 公司介绍 -->
+    <section class="py-16 bg-white">
+        <div class="container mx-auto px-4">
+            <div class="max-w-4xl mx-auto text-center mb-16 section-fade-in">
+                <h2 class="text-[clamp(1.5rem,4vw,2.5rem)] font-bold text-gray-900 mb-6">为什么选择十字通讯社？</h2>
+                <p class="text-gray-600 text-lg mb-10">我们是一家充满活力的新闻机构，致力于提供高质量的新闻报道。加入我们，你将有机会与顶尖的媒体专业人士一起工作，参与重要新闻的报道，为公众提供有价值的信息。</p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div class="p-6">
+                        <div class="w-14 h-14 bg-burgundy/10 text-burgundy rounded-full flex items-center justify-center text-2xl font-bold mb-5 mx-auto">
+                            <i class="fa-lightbulb-o"></i>
+                        </div>
+                        <h3 class="text-xl font-bold mb-3">创新环境</h3>
+                        <p class="text-gray-600">我们鼓励创新思维，提供宽松的工作环境，让你的创意得到充分发挥。</p>
+                    </div>
+                    
+                    <div class="p-6">
+                        <div class="w-14 h-14 bg-burgundy/10 text-burgundy rounded-full flex items-center justify-center text-2xl font-bold mb-5 mx-auto">
+                            <i class="fa-graduation-cap"></i>
+                        </div>
+                        <h3 class="text-xl font-bold mb-3">职业发展</h3>
+                        <p class="text-gray-600">完善的培训体系和晋升通道，帮助你实现职业目标，提升专业能力。</p>
+                    </div>
+                    
+                    <div class="p-6">
+                        <div class="w-14 h-14 bg-burgundy/10 text-burgundy rounded-full flex items-center justify-center text-2xl font-bold mb-5 mx-auto">
+                            <i class="fa-users"></i>
+                        </div>
+                        <h3 class="text-xl font-bold mb-3">优秀团队</h3>
+                        <p class="text-gray-600">与行业内顶尖人才共事，相互学习，共同成长，创造卓越的新闻作品。</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 招聘岗位 -->
+    <section id="open-positions" class="py-16 bg-gray-50">
+        <div class="container mx-auto px-4">
+            <div class="text-center mb-16 section-fade-in">
+                <h2 class="text-[clamp(1.5rem,4vw,2.5rem)] font-bold text-gray-900 mb-4">公开招聘岗位</h2>
+                <div class="w-20 h-1 bg-burgundy mx-auto mb-8"></div>
+                <p class="text-gray-600 max-w-2xl mx-auto">我们正在寻找充满激情、才华横溢的人才加入我们的团队</p>
+            </div>
+            
+            <!-- 职位筛选 -->
+            <div class="max-w-4xl mx-auto mb-12 section-fade-in">
+                <div class="bg-white p-4 rounded-lg shadow-sm">
+                    <div class="flex flex-col md:flex-row gap-4">
+                        <div class="flex-1">
+                            <label for="job-search" class="block text-gray-700 mb-2 text-sm">搜索职位</label>
+                            <div class="relative">
+                                <input type="text" id="job-search" placeholder="输入职位名称或关键词" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-burgundy focus:border-transparent pl-10">
+                                <i class="fa fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                            </div>
+                        </div>
+                        
+                        <div class="w-full md:w-48">
+                            <label for="job-department" class="block text-gray-700 mb-2 text-sm">部门</label>
+                            <select id="job-department" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-burgundy focus:border-transparent appearance-none bg-white">
+                                <option value="all">所有部门</option>
+                                <option value="editorial">编辑部</option>
+                                <option value="digital">数字媒体部</option>
+                                <option value="international">国际部</option>
+                                <option value="technology">技术部</option>
+                                <option value="business">商务部</option>
+                            </select>
+                        </div>
+                        
+                        <div class="w-full md:w-48 self-end">
+                            <label for="job-type" class="block text-gray-700 mb-2 text-sm">职位类型</label>
+                            <select id="job-type" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-burgundy focus:border-transparent appearance-none bg-white">
+                                <option value="all">所有类型</option>
+                                <option value="full-time">全职</option>
+                                <option value="part-time">兼职</option>
+                                <option value="internship">实习</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 职位列表 -->
+            <div id="jobs-container" class="max-w-5xl mx-auto space-y-6">
+                <!-- 职位内容将通过JavaScript动态加载 -->
+                <div class="col-span-full text-center py-16">
+                    <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-burgundy mx-auto mb-4"></div>
+                    <p class="text-gray-500">加载职位中...</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 招聘流程 -->
+    <section class="py-16 bg-white">
+        <div class="container mx-auto px-4">
+            <div class="text-center mb-16 section-fade-in">
+                <h2 class="text-[clamp(1.5rem,4vw,2.5rem)] font-bold text-gray-900 mb-4">招聘流程</h2>
+                <div class="w-20 h-1 bg-burgundy mx-auto mb-8"></div>
+                <p class="text-gray-600 max-w-2xl mx-auto">我们致力于为每位候选人提供公平、透明的招聘体验</p>
+            </div>
+            
+            <div class="max-w-5xl mx-auto">
+                <div class="relative">
+                    <!-- 连接线 -->
+                    <div class="hidden md:block absolute left-1/2 top-0 bottom-0 w-1 bg-gray-200 transform -translate-x-1/2"></div>
+                    
+                    <div class="space-y-12 relative">
+                        <!-- 步骤1 -->
+                        <div class="flex flex-col md:flex-row items-center section-fade-in">
+                            <div class="md:w-1/2 md:pr-12 md:text-right mb-8 md:mb-0">
+                                <h3 class="text-xl font-bold mb-2">提交申请</h3>
+                                <p class="text-gray-600">通过我们的招聘页面提交您的简历和求职信，确保您的申请材料完整且符合职位要求。</p>
+                            </div>
+                            
+                            <div class="md:w-12 flex justify-center relative">
+                                <div class="w-10 h-10 rounded-full bg-burgundy text-white flex items-center justify-center font-bold z-10">1</div>
+                            </div>
+                            
+                            <div class="md:w-1/2 md:pl-12">
+                                <div class="h-40 bg-gray-50 rounded-lg flex items-center justify-center overflow-hidden">
+                                    <img src="https://picsum.photos/id/0/400/200" alt="提交申请" class="w-full h-full object-cover">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 步骤2 -->
+                        <div class="flex flex-col md:flex-row items-center section-fade-in">
+                            <div class="md:w-1/2 md:pr-12 md:text-right order-1 md:order-1 mb-8 md:mb-0">
+                                <div class="h-40 bg-gray-50 rounded-lg flex items-center justify-center overflow-hidden">
+                                    <img src="https://picsum.photos/id/1/400/200" alt="初试" class="w-full h-full object-cover">
+                                </div>
+                            </div>
+                            
+                            <div class="md:w-12 flex justify-center relative order-0 md:order-2">
+                                <div class="w-10 h-10 rounded-full bg-burgundy text-white flex items-center justify-center font-bold z-10">2</div>
+                            </div>
+                            
+                            <div class="md:w-1/2 md:pl-12 order-2 md:order-3">
+                                <h3 class="text-xl font-bold mb-2">初试</h3>
+                                <p class="text-gray-600">我们的招聘团队将对您的申请进行筛选，符合要求的候选人将收到初试邀请，通常为电话或视频面试。</p>
+                            </div>
+                        </div>
+                        
+                        <!-- 步骤3 -->
+                        <div class="flex flex-col md:flex-row items-center section-fade-in">
+                            <div class="md:w-1/2 md:pr-12 md:text-right mb-8 md:mb-0">
+                                <h3 class="text-xl font-bold mb-2">复试</h3>
+                                <p class="text-gray-600">通过初试的候选人将被邀请参加复试，可能包括专业能力测试和与部门负责人的面对面交流。</p>
+                            </div>
+                            
+                            <div class="md:w-12 flex justify-center relative">
+                                <div class="w-10 h-10 rounded-full bg-burgundy text-white flex items-center justify-center font-bold z-10">3</div>
+                            </div>
+                            
+                            <div class="md:w-1/2 md:pl-12">
+                                <div class="h-40 bg-gray-50 rounded-lg flex items-center justify-center overflow-hidden">
+                                    <img src="https://picsum.photos/id/2/400/200" alt="复试" class="w-full h-full object-cover">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 步骤4 -->
+                        <div class="flex flex-col md:flex-row items-center section-fade-in">
+                            <div class="md:w-1/2 md:pr-12 md:text-right order-1 md:order-1 mb-8 md:mb-0">
+                                <div class="h-40 bg-gray-50 rounded-lg flex items-center justify-center overflow-hidden">
+                                    <img src="https://picsum.photos/id/3/400/200" alt="录用通知" class="w-full h-full object-cover">
+                                </div>
+                            </div>
+                            
+                            <div class="md:w-12 flex justify-center relative order-0 md:order-2">
+                                <div class="w-10 h-10 rounded-full bg-burgundy text-white flex items-center justify-center font-bold z-10">4</div>
+                            </div>
+                            
+                            <div class="md:w-1/2 md:pl-12 order-2 md:order-3">
+                                <h3 class="text-xl font-bold mb-2">录用通知</h3>
+                                <p class="text-gray-600">通过所有面试环节的候选人将收到我们的录用通知，包含职位详情、薪资福利和入职时间等信息。</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 常见问题 -->
+    <section class="py-16 bg-gray-50">
+        <div class="container mx-auto px-4">
+            <div class="text-center mb-16 section-fade-in">
+                <h2 class="text-[clamp(1.5rem,4vw,2.5rem)] font-bold text-gray-900 mb-4">常见问题</h2>
+                <div class="w-20 h-1 bg-burgundy mx-auto mb-8"></div>
+                <p class="text-gray-600 max-w-2xl mx-auto">关于招聘流程的常见问题解答</p>
+            </div>
+            
+            <div class="max-w-3xl mx-auto space-y-4 section-fade-in">
+                <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+                    <button class="faq-toggle w-full flex justify-between items-center p-6 text-left focus:outline-none">
+                        <span class="font-medium text-lg">我如何知道我的申请状态？</span>
+                        <i class="fa fa-plus text-burgundy transition-transform duration-300"></i>
+                    </button>
+                    <div class="faq-content hidden px-6 pb-6">
+                        <p class="text-gray-600">我们会在收到申请后的7个工作日内通过电子邮件通知您申请状态。如果您通过了初步筛选，我们的招聘团队会与您联系安排面试。您也可以通过招聘页面上的"查询申请状态"功能查看最新进展。</p>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+                    <button class="faq-toggle w-full flex justify-between items-center p-6 text-left focus:outline-none">
+                        <span class="font-medium text-lg">面试通常会问哪些问题？</span>
+                        <i class="fa fa-plus text-burgundy transition-transform duration-300"></i>
+                    </button>
+                    <div class="faq-content hidden px-6 pb-6">
+                        <p class="text-gray-600">面试问题会根据不同岗位有所差异，通常包括：与岗位相关的专业知识、过往工作经验、解决问题的能力、团队合作能力等。我们也会给您介绍公司情况和岗位职责，并解答您的疑问。</p>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+                    <button class="faq-toggle w-full flex justify-between items-center p-6 text-left focus:outline-none">
+                        <span class="font-medium text-lg">公司提供哪些福利？</span>
+                        <i class="fa fa-plus text-burgundy transition-transform duration-300"></i>
+                    </button>
+                    <div class="faq-content hidden px-6 pb-6">
+                        <p class="text-gray-600">我们提供有竞争力的薪酬待遇和完善的福利体系，包括：五险一金、补充商业保险、带薪年假、节日福利、员工培训、职业发展计划、团队建设活动等。具体福利会根据职位和工作年限有所不同。</p>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+                    <button class="faq-toggle w-full flex justify-between items-center p-6 text-left focus:outline-none">
+                        <span class="font-medium text-lg">是否提供实习机会？</span>
+                        <i class="fa fa-plus text-burgundy transition-transform duration-300"></i>
+                    </button>
+                    <div class="faq-content hidden px-6 pb-6">
+                        <p class="text-gray-600">是的，我们为在校学生提供丰富的实习机会，涵盖编辑、记者、设计、技术等多个岗位。实习期间，您将获得实际工作经验、专业指导和有竞争力的实习补贴。表现优秀的实习生将有机会获得正式录用。</p>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+                    <button class="faq-toggle w-full flex justify-between items-center p-6 text-left focus:outline-none">
+                        <span class="font-medium text-lg">是否接受没有相关工作经验的申请者？</span>
+                        <i class="fa fa-plus text-burgundy transition-transform duration-300"></i>
+                    </button>
+                    <div class="faq-content hidden px-6 pb-6">
+                        <p class="text-gray-600">对于一些初级职位和实习岗位，我们会考虑没有相关工作经验但具备潜力的申请者。我们更看重您的学习能力、沟通能力和对新闻行业的热情。如果您有相关的项目经验或个人作品，也欢迎在申请时提交。</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 申请咨询 -->
+    <section class="py-16 bg-burgundy text-white">
+        <div class="container mx-auto px-4">
+            <div class="max-w-4xl mx-auto text-center section-fade-in">
+                <h2 class="text-[clamp(1.5rem,4vw,2.5rem)] font-bold mb-6">有其他问题？</h2>
+                <p class="text-white/80 mb-10 max-w-2xl mx-auto">如果您对我们的招聘流程或职位有任何疑问，欢迎联系我们的招聘团队</p>
+                
+                <div class="flex flex-col sm:flex-row justify-center gap-6">
+                    <a href="mailto:hr@crossnews.com" class="flex items-center justify-center bg-white/10 hover:bg-white/20 transition-colors duration-300 px-6 py-3 rounded-md">
+                        <i class="fa fa-envelope mr-3"></i>
+                        <span>发送邮件</span>
+                    </a>
+                    
+                    <a href="tel:+861088887777" class="flex items-center justify-center bg-white/10 hover:bg-white/20 transition-colors duration-300 px-6 py-3 rounded-md">
+                        <i class="fa fa-phone mr-3"></i>
+                        <span>电话咨询</span>
+                    </a>
+                    
+                    <a href="#contact-form" class="flex items-center justify-center bg-white text-burgundy hover:bg-gray-100 transition-colors duration-300 px-6 py-3 rounded-md">
+                        <i class="fa fa-comments mr-3"></i>
+                        <span>在线咨询</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 页脚 -->
+    <footer class="bg-gray-900 text-white pt-16 pb-8">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
+                <div>
+                    <div class="flex items-center space-x-2 mb-6">
+                        <div class="w-10 h-10 rounded-full bg-burgundy flex items-center justify-center">
+                            <span class="text-white font-bold text-xl">十</span>
+                        </div>
+                        <span class="text-2xl font-bold">十字通讯社</span>
+                    </div>
+                    <p class="text-gray-400 mb-6">传递真相，连接世界，我们致力于提供最及时、最准确的新闻报道。</p>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-gray-400 hover:text-white transition-colors duration-300">
+                            <i class="fa fa-weibo text-xl"></i>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-white transition-colors duration-300">
+                            <i class="fa fa-wechat text-xl"></i>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-white transition-colors duration-300">
+                            <i class="fa fa-twitter text-xl"></i>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-white transition-colors duration-300">
+                            <i class="fa fa-facebook text-xl"></i>
+                        </a>
+                    </div>
+                </div>
+                
+                <div>
+                    <h3 class="text-lg font-semibold mb-6">快速链接</h3>
+                    <ul class="space-y-3">
+                        <li><a href="index.html" class="text-gray-400 hover:text-white transition-colors duration-300">首页</a></li>
+                        <li><a href="jobs.html" class="text-gray-400 hover:text-white transition-colors duration-300">招聘岗位</a></li>
+                        <li><a href="about.html" class="text-gray-400 hover:text-white transition-colors duration-300">关于我们</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition-colors duration-300">新闻中心</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition-colors duration-300">联系方式</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3 class="text-lg font-semibold mb-6">联系方式</h3>
+                    <ul class="space-y-3">
+                        <li class="flex items-start">
+                            <i class="fa fa-map-marker text-burgundy mt-1 mr-3"></i>
+                            <span class="text-gray-400">北京市朝阳区新闻大厦A座15层</span>
+                        </li>
+                        <li class="flex items-center">
+                            <i class="fa fa-phone text-burgundy mr-3"></i>
+                            <span class="text-gray-400">+86 10 8888 7777</span>
+                        </li>
+                        <li class="flex items-center">
+                            <i class="fa fa-envelope text-burgundy mr-3"></i>
+                            <span class="text-gray-400">contact@crossnews.com</span>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3 class="text-lg font-semibold mb-6">订阅新闻</h3>
+                    <p class="text-gray-400 mb-4">订阅我们的新闻简报，获取最新资讯</p>
+                    <form class="flex">
+                        <input type="email" placeholder="您的邮箱地址" class="px-4 py-2 rounded-l-md w-full focus:outline-none text-gray-800">
+                        <button type="submit" class="bg-burgundy hover:bg-burgundy-dark text-white px-4 py-2 rounded-r-md transition-colors duration-300">
+                            <i class="fa fa-paper-plane"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="border-t border-gray-800 pt-8">
+                <div class="flex flex-col md:flex-row justify-between items-center">
+                    <p class="text-gray-500 text-sm mb-4 md:mb-0">© 2023 十字通讯社. 保留所有权利.</p>
+                    <div class="flex space-x-6">
+                        <a href="#" class="text-gray-500 hover:text-gray-300 text-sm">隐私政策</a>
+                        <a href="#" class="text-gray-500 hover:text-gray-300 text-sm">使用条款</a>
+                        <a href="#" class="text-gray-500 hover:text-gray-300 text-sm">Cookie政策</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // 导航栏滚动效果
+        window.addEventListener('scroll', function() {
+            const nav = document.getElementById('main-nav');
+            if (window.scrollY > 50) {
+                nav.classList.add('py-2', 'bg-burgundy-dark');
+                nav.classList.remove('py-4', 'bg-burgundy');
+            } else {
+                nav.classList.add('py-4', 'bg-burgundy');
+                nav.classList.remove('py-2', 'bg-burgundy-dark');
+            }
+        });
+
+        // 移动端菜单切换
+        document.getElementById('menu-toggle').addEventListener('click', function() {
+            const mobileMenu = document.getElementById('mobile-menu');
+            mobileMenu.classList.toggle('hidden');
+        });
+
+        // FAQ折叠效果
+        document.querySelectorAll('.faq-toggle').forEach(toggle => {
+            toggle.addEventListener('click', function() {
+                const content = this.nextElementSibling;
+                const icon = this.querySelector('i');
+                
+                content.classList.toggle('hidden');
+                icon.classList.toggle('fa-plus');
+                icon.classList.toggle('fa-minus');
+                icon.classList.toggle('rotate-45');
+            });
+        });
+
+        // 滚动显示动画
+        function checkVisibility() {
+            document.querySelectorAll('.section-fade-in').forEach(element => {
+                const rect = element.getBoundingClientRect();
+                const windowHeight = window.innerHeight || document.documentElement.clientHeight;
+                
+                if (rect.top <= windowHeight * 0.85) {
+                    element.classList.add('section-visible');
+                }
+            });
+        }
+
+        // 初始检查和滚动时检查
+        window.addEventListener('load', checkVisibility);
+        window.addEventListener('scroll', checkVisibility);
+
+        // 从Firebase加载职位
+        async function loadJobs() {
+            try {
+                const jobsCollection = collection(db, 'jobs');
+                const jobSnapshot = await getDocs(jobsCollection);
+                const jobsContainer = document.getElementById('jobs-container');
+                
+                // 清空加载状态
+                jobsContainer.innerHTML = '';
+                
+                if (jobSnapshot.empty) {
+                    jobsContainer.innerHTML = `
+                        <div class="col-span-full text-center py-16">
+                            <p class="text-gray-500">目前没有公开招聘的岗位</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                // 生成职位卡片
+                jobSnapshot.forEach(doc => {
+                    const job = doc.data();
+                    const jobCard = document.createElement('div');
+                    jobCard.className = 'bg-white rounded-lg shadow-sm overflow-hidden job-card-hover section-fade-in';
+                    jobCard.innerHTML = `
+                        <div class="p-6">
+                            <div class="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
+                                <div>
+                                    <h3 class="text-xl font-bold text-gray-900 mb-2">${job.title}</h3>
+                                    <div class="flex flex-wrap gap-2 mb-4">
+                                        <span class="bg-burgundy/10 text-burgundy text-xs px-3 py-1 rounded-full">${job.department}</span>
+                                        <span class="bg-gray-100 text-gray-800 text-xs px-3 py-1 rounded-full">${job.type}</span>
+                                        <span class="bg-gray-100 text-gray-800 text-xs px-3 py-1 rounded-full">${job.location}</span>
+                                    </div>
+                                    <p class="text-gray-600 mb-4 line-clamp-3">${job.description}</p>
+                                </div>
+                                <div class="flex-shrink-0">
+                                    <span class="text-sm text-gray-500">发布于 ${new Date(job.postedDate.toDate()).toLocaleDateString()}</span>
+                                </div>
+                            </div>
+                            <div class="border-t border-gray-100 pt-4 flex justify-between items-center">
+                                <div class="flex items-center text-gray-500 text-sm">
+                                    <i class="fa fa-clock-o mr-1"></i>
+                                    <span>截止日期: ${new Date(job.deadline.toDate()).toLocaleDateString()}</span>
+                                </div>
+                                <button class="view-job-details bg-burgundy text-white px-4 py-2 rounded-md hover:bg-burgundy-dark transition-colors duration-300 text-sm font-medium" data-id="${doc.id}">
+                                    查看详情
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    jobsContainer.appendChild(jobCard);
+                });
+                
+                // 触发动画
+                checkVisibility();
+                
+                // 添加查看详情事件
+                document.querySelectorAll('.view-job-details').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const jobId = this.getAttribute('data-id');
+                        window.location.href = `job-details.html?id=${jobId}`;
+                    });
+                });
+                
+            } catch (error) {
+                console.error('Error loading jobs:', error);
+                document.getElementById('jobs-container').innerHTML = `
+                    <div class="col-span-full text-center py-16">
+                        <p class="text-red-500">加载职位失败，请稍后重试</p>
+                    </div>
+                `;
+            }
+        }
+
+        // 筛选职位
+        function setupJobFilters() {
+            const searchInput = document.getElementById('job-search');
+            const departmentSelect = document.getElementById('job-department');
+            const typeSelect = document.getElementById('job-type');
+            
+            function filterJobs() {
+                const searchTerm = searchInput.value.toLowerCase();
+                const department = departmentSelect.value;
+                const type = typeSelect.value;
+                
+                document.querySelectorAll('#jobs-container > div').forEach(card => {
+                    const title = card.querySelector('h3').textContent.toLowerCase();
+                    const desc = card.querySelector('p').textContent.toLowerCase();
+                    const deptTag = card.querySelector('.flex.flex-wrap span:first-child').textContent.toLowerCase();
+                    const typeTag = card.querySelector('.flex.flex-wrap span:nth-child(2)').textContent.toLowerCase();
+                    
+                    const matchesSearch = title.includes(searchTerm) || desc.includes(searchTerm);
+                    const matchesDept = department === 'all' || deptTag.includes(department);
+                    const matchesType = type === 'all' || typeTag.includes(type);
+                    
+                    if (matchesSearch && matchesDept && matchesType) {
+                        card.style.display = 'block';
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+            }
+            
+            searchInput.addEventListener('input', filterJobs);
+            departmentSelect.addEventListener('change', filterJobs);
+            typeSelect.addEventListener('change', filterJobs);
+        }
+
+        // 页面加载完成后执行
+        window.addEventListener('load', function() {
+            loadJobs();
+            setupJobFilters();
+        });
+    </script>
+</body>
+</html>
+    
